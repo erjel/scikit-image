@@ -284,24 +284,31 @@ def denoise_tv_bregman(image, weight, max_iter=100, eps=1e-3, isotropic=True,
     image = np.atleast_3d(img_as_float(image))
     image = np.ascontiguousarray(image)
 
-    rows = image.shape[0]
-    cols = image.shape[1]
-    dims = image.shape[2]
+    shape_ext = np.asarray(image.shape)
+    shape_ext[0:2] += 2
 
-    shape_ext = (rows + 2, cols + 2, dims)
+    out = np.zeros(shape_ext, image.dtype)
 
-    
     if multichannel:
-        out = np.zeros_like(image)
-        channel = np.zeros(shape_ext[:2], image.dtype)
+        for c in range(image.shape[-1]):
+            channel_in = image[..., c]
+            channel_out = out[..., c]
 
-        _denoise_tv_bregman(image, image.dtype.type(weight), max_iter, eps,
-                            isotropic, channel)
-        
-        out[..., c] = np.squeeze(channel[1:-1, 1:-1])
+            channel_in = np.ascontiguousarray(np.atleast_3d(channel_in))
+            channel_out = np.ascontiguousarray(np.atleast_3d(channel_out))
+
+            _denoise_tv_bregman(channel_in, image.dtype.type(weight), max_iter, eps,
+                                isotropic, channel_out)
+
+
+            if np.ndim(out) == np.ndim(channel_out):
+                out[..., c] = channel_out[..., -1]
+            else:
+                out[..., c] = channel_out
+
     else:
-
-        out = _denoise_tv_chambolle_nd(image, weight, eps, n_iter_max)
+        _denoise_tv_bregman(image, image.dtype.type(weight), max_iter, eps,
+                            isotropic, out)
 
 
     return np.squeeze(out[1:-1, 1:-1])
