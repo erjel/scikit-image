@@ -180,7 +180,7 @@ def test_denoise_tv_bregman_3d():
 
 def test_denoise_tv_bregman_multichannel():
     img_astro = astro.copy()
-    denoised0 = restoration.denoise_tv_bregman(img_astro[..., 0], weight==60.0)
+    denoised0 = restoration.denoise_tv_bregman(img_astro[..., 0], weight=60.0)
     denoised = restoration.denoise_tv_bregman(img_astro, weight=60.0,
                                                 multichannel=True)
     assert_equal(denoised[..., 0], denoised0)
