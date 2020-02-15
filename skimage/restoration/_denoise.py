@@ -232,7 +232,8 @@ def denoise_bilateral(image, win_size=None, sigma_color=None, sigma_spatial=1,
                               range_lut, empty_dims, out)
 
 
-def denoise_tv_bregman(image, weight, max_iter=100, eps=1e-3, isotropic=True):
+def denoise_tv_bregman(image, weight, max_iter=100, eps=1e-3, isotropic=True,
+                       multichannel=False):
     """Perform total-variation denoising using split-Bregman optimization.
 
     Total-variation denoising (also know as total-variation regularization)
@@ -258,6 +259,10 @@ def denoise_tv_bregman(image, weight, max_iter=100, eps=1e-3, isotropic=True):
         Maximal number of iterations used for the optimization.
     isotropic : boolean, optional
         Switch between isotropic and anisotropic TV denoising.
+    multichannel : bool, optional
+        Apply total-variation denoising separately for each channel. This
+        option should be true for color images, otherwise the denoising is
+        also applied in the channels dimension.
 
     Returns
     -------
@@ -285,9 +290,20 @@ def denoise_tv_bregman(image, weight, max_iter=100, eps=1e-3, isotropic=True):
 
     shape_ext = (rows + 2, cols + 2, dims)
 
-    out = np.zeros(shape_ext, image.dtype)
-    _denoise_tv_bregman(image, image.dtype.type(weight), max_iter, eps,
-                        isotropic, out)
+    
+    if multichannel:
+        out = np.zeros_like(image)
+        channel = np.zeros(shape_ext[:2], image.dtype)
+
+        _denoise_tv_bregman(image, image.dtype.type(weight), max_iter, eps,
+                            isotropic, channel)
+        
+        out[..., c] = np.squeeze(channel[1:-1, 1:-1])
+    else:
+
+        out = _denoise_tv_chambolle_nd(image, weight, eps, n_iter_max)
+
+
     return np.squeeze(out[1:-1, 1:-1])
 
 
